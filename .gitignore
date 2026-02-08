@@ -4,3 +4,4 @@ node_modules/
 *-lock.*
 *.lock
 *.env*
+plan_workspace

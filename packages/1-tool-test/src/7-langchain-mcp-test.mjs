@@ -3,6 +3,35 @@ import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 import { ChatOpenAI } from '@langchain/openai';
 import chalk from 'chalk';
 import { HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
+/*
+流程分析
+┌─────────────────────────────────────────────────────────────┐
+│ 初始化阶段                                                   │
+├─────────────────────────────────────────────────────────────┤
+│ 1. 创建 ChatOpenAI 模型（连接到 Qwen API）                 │
+│ 2. 创建 MultiServerMCPClient（管理 MCP 连接）              │
+│ 3. 从 MCP Server 获取 tools（工具列表）                    │
+│ 4. 从 MCP Server 读取 resources（背景文档）               │
+│ 5. model.bindTools(tools) → 创建支持工具的模型             │
+└─────────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Agent 循环（runAgentWithTools）                             │
+├─────────────────────────────────────────────────────────────┤
+│ 第1轮：                                                      │
+│  • 消息 = [系统消息（资源内容）+ 用户查询]                 │
+│  • 调用 model.invoke()                                      │
+│  • LLM 返回：选择调用哪个工具 + 工具参数                  │
+│  • 执行工具 → 获得结果                                      │
+│  • 新消息 = 旧消息 + LLM回复 + ToolMessage(结果)          │
+│                                                             │
+│ 第2轮：                                                      │
+│  • 新消息传入 model.invoke()                               │
+│  • LLM 基于工具结果重新思考                                │
+│  • 若无工具调用 → 返回最终回复，循环结束                  │
+│  • 若有工具调用 → 重复执行...                             │
+└─────────────────────────────────────────────────────────────┘
+*/
 
 const model = new ChatOpenAI({ 
     modelName: "qwen-plus",
@@ -12,6 +41,8 @@ const model = new ChatOpenAI({
     },
 });
 
+// 使用的是 MultiServerMCPClient 默认的无状态模式
+// 每次工具调用时，会创建一个临时的 MCP ClientSession，工具执行完后，自动清理连接，不需要手动 close()
 const mcpClient = new MultiServerMCPClient({
     mcpServers: {
         'my-mcp-server': {
@@ -21,6 +52,8 @@ const mcpClient = new MultiServerMCPClient({
             ]
         }
     }
+    // 有状态模式，需要添加状态配置，还需要显式调用 mcpClient.connect()，以及mcpClient.close()
+    // connectOptions: { /* 有状态配置 */ }
 });
 
 const tools = await mcpClient.getTools();
@@ -75,4 +108,21 @@ async function runAgentWithTools(query, maxIterations = 30) {
 await runAgentWithTools("查一下用户 002 的信息");
 // await runAgentWithTools("MCP Server 的使用指南是什么");
 
+// 不总是需要，但强烈建议在生产环境中调用
 await mcpClient.close();
+
+/*
+MCP客户端有状态和无状态两种模式：
+使用无状态模式，如果：
+  ✅ 工具调用相互独立
+  ✅ 不需要跨调用上下文
+  ✅ 流量不是特别高
+  ✅ 追求简单性
+
+迁移到有状态模式 如果：
+  ✅ 需要数据库事务
+  ✅ 需要保持 HTTP 认证
+  ✅ 工具之间有数据依赖关系
+  ✅ 高频工具调用（需要性能优化）
+  ✅ 构建长工作流
+*/

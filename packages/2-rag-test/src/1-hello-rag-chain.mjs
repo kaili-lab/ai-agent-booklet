@@ -2,6 +2,9 @@ import "dotenv/config";
 import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
 import { Document } from "@langchain/core/documents";
 import { MemoryVectorStore } from "@langchain/classic/vectorstores/memory";
+import { createRetrievalChain } from "langchain/chains/retrieval";
+import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
 
 const documents = [
   new Document({
@@ -98,6 +101,24 @@ const vectorStore = await MemoryVectorStore.fromDocuments(
 
 const retriever = vectorStore.asRetriever({ k: 3 });
 
+// 创建自定义 prompt 模板
+const prompt = ChatPromptTemplate.fromMessages([
+  ["system", "你是一个讲友情故事的老师。基于以下故事片段回答问题，用温暖生动的语言。如果故事中没有提到，就说"这个故事里还没有提到这个细节"。"],
+  ["human", "故事片段:\n{context}\n\n问题: {input}\n\n老师的回答:"],
+]);
+
+// 创建文档组合链
+const combineDocsChain = await createStuffDocumentsChain({
+  llm: model,
+  prompt,
+});
+
+// 创建检索链
+const retrievalChain = await createRetrievalChain({
+  retriever,
+  combineDocsChain,
+});
+
 const questions = [
   "东东和光光是怎么成为朋友的？"
 ];
@@ -107,16 +128,15 @@ for (const question of questions) {
   console.log(`问题: ${question}`);
   console.log("=".repeat(80));
   
-  // 使用 retriever 获取文档
-  // 将question转换为向量，根据向量匹配，从向量数据库中检索出最相似的文档
-  const retrievedDocs = await retriever.invoke(question);
+  // 使用检索链获取回答
+  const result = await retrievalChain.invoke({ input: question });
   
   // 使用 similaritySearchWithScore 获取相似度评分
   const scoredResults = await vectorStore.similaritySearchWithScore(question, 3);
   
   // 打印用到的文档和相似度评分
   console.log("\n【检索到的文档及相似度评分】");
-  retrievedDocs.forEach((doc, i) => {
+  result.context.forEach((doc, i) => {
     // 找到对应的评分
     const scoredResult = scoredResults.find(([scoredDoc]) => 
       scoredDoc.pageContent === doc.pageContent
@@ -129,16 +149,8 @@ for (const question of questions) {
     console.log(`元数据: 章节=${doc.metadata.chapter}, 角色=${doc.metadata.character}, 类型=${doc.metadata.type}, 心情=${doc.metadata.mood}`);
   });
   
-  // 构建 prompt
-  const context = retrievedDocs
-    .map((doc, i) => `[片段${i + 1}]\n${doc.pageContent}`)
-    .join("\n\n━━━━━\n\n");
-  
-  const prompt = `你是一个讲友情故事的老师。基于以下故事片段回答问题，用温暖生动的语言。如果故事中没有提到，就说"这个故事里还没有提到这个细节"。故事片段: ${context} 问题: ${question} 老师的回答:`;
-  
-  // 直接使用 model.invoke
+  // 打印 AI 回答
   console.log("\n【AI 回答】");
-  const response = await model.invoke(prompt);
-  console.log(response.content);
+  console.log(result.answer);
   console.log("\n");
 }
