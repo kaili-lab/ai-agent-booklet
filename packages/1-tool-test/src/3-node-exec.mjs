@@ -2,16 +2,20 @@ import { spawn } from 'node:child_process';
 
 // echo 在 windows 可能不支持，可以设置 shell: 'powershell.exe'
 const command = 'echo -e "n\nn" | pnpm create vite react-todo-app --template react-ts';
+// cwd(): 返回Nodejs的当前工作目录
 const cwd = process.cwd();
 // 解析命令和参数
 const [cmd, ...args] = command.split(' ');
 
+// spawn 创建的是一个独立子进程，命令执行完后子进程会退出，资源由系统回收
+// 子进程创建后，会自动通过stdio读取数据，管道符会将数据写入IO等待读取
 const child = spawn(cmd, args, {
   cwd,
   stdio: 'inherit', // 实时输出到控制台
-  shell: true,
+  // shell: true, win系统可以设置 shell: 'powershell.exe'
+  // Windows中使用git bash可以执行 Linux 命令
+  shell: 'C:Program Files//Git//bin//bash.exe', 
 });
-
 let errorMsg = '';
 
 child.on('error', (error) => {

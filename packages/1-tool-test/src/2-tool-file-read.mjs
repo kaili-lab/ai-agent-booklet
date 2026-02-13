@@ -71,7 +71,7 @@ while (response.tool_calls && response.tool_calls.length > 0) {
         return `错误: 找不到工具 ${toolCall.name}`;
       }
       
-      console.log(`  [执行工具] ${toolCall.name}(${JSON.stringify(toolCall.args)})`);
+      console.log(`[执行工具] ${toolCall.name}(${JSON.stringify(toolCall.args)})`);
       try {
         const result = await tool.invoke(toolCall.args);
         return result;
@@ -82,10 +82,8 @@ while (response.tool_calls && response.tool_calls.length > 0) {
   );
   
   // 将工具结果添加到消息历史
-  /*
-  1. 为什么使用 ToolMessage 来封装工具结果？因为这样可以明确区分这是工具的输出，而不是用户的输入，或模型的回复；
-  2. 为什么要关联 tool_call_id？因为可能会有多个工具调用，这样模型可以知道这个结果是对应哪个工具调用的；
-  */
+  // 1. 为什么使用 ToolMessage 来封装工具结果？因为这样可以明确区分这是工具的输出，而不是用户的输入，或模型的回复；
+  // 2. 为什么要关联 tool_call_id？因为可能会有多个工具调用，这样模型可以知道这个结果是对应哪个工具调用的；
   response.tool_calls.forEach((toolCall, index) => {
     messages.push(
       new ToolMessage({
@@ -94,6 +92,10 @@ while (response.tool_calls && response.tool_calls.length > 0) {
       })
     );
   });
+  // ToolMessage的其他常用属性：
+  // status："success" | "error"，标记工具调用成功或失败
+  // artifact：工具原始产物，不发给模型，给业务侧保留完整结果用
+  // metadata：自定义结构化元数据（如耗时、traceId、数据来源）
   
   // 再次调用模型，传入工具结果
   response = await modelWithTools.invoke(messages);
@@ -101,5 +103,16 @@ while (response.tool_calls && response.tool_calls.length > 0) {
 
 console.log('\n[最终回复]');
 console.log(response.content);
-
+/*
+模型调用response的结构：
+  content：模型的自然语言内容（最终展示给用户的文本）。
+  tool_calls：模型请求调用的工具列表
+    id：本次工具调用的唯一标识
+    name：要调用的工具名
+    args：调用参数对象
+  invalid_tool_calls：工具调用解析失败的项（有些模型会给，便于排错）。
+  response_metadata：模型原始响应元信息（如 finish_reason、模型名、token 使用等）。    
+  usage_metadata：LangChain 统一后的 token 统计信息（输入/输出/总 tokens）。
+  id / additional_kwargs：消息 ID 和厂商原始附加字段（调试、追踪时常用）。
+*/
 

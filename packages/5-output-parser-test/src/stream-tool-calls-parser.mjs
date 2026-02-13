@@ -46,17 +46,19 @@ try {
     console.log("📡 实时输出流式内容:\n");
 
     for await (const chunk of stream) {
+        // console.log(chunk);
+
         if (chunk.length > 0) {
             const toolCall = chunk[0];
 
             // 获取当前工具调用的完整参数内容
-            // const currentContent = JSON.stringify(toolCall.args || {}, null, 2);
+            const currentContent = JSON.stringify(toolCall.args || {}, null, 2);
 
-            // if (currentContent.length > lastContent.length) {
-            //     const newText = currentContent.slice(lastContent.length);
-            //     process.stdout.write(newText); // 实时输出到控制台
-            //     lastContent = currentContent; // 更新已读进度
-            // }
+            if (currentContent.length > lastContent.length) {
+                const newText = currentContent.slice(lastContent.length);
+                process.stdout.write(newText); // 实时输出到控制台
+                lastContent = currentContent; // 更新已读进度
+            }
 
             console.log(toolCall.args);
         }

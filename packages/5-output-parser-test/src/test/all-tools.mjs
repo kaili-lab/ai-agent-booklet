@@ -3,10 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { z } from 'zod';
-/*
-1. 函数返回值是agentic loop 的一部分，必须要具有描述性，好帮助LLM理解
-2. 需要使用try-catch捕获异常，防止agent 崩溃，崩溃之后也能通过catch中的信息帮助LLM处理错误场景
-*/
+
 // 1. 读取文件工具
 const readFileTool = tool(
   async ({ filePath }) => {
@@ -66,7 +63,7 @@ const executeCommandTool = tool(
       const child = spawn(cmd, args, {
         cwd,
         stdio: 'inherit', // 实时输出到控制台
-        shell: 'C:Program Files//Git//bin//bash.exe',
+        shell: true
       });
 
       let errorMsg = '';

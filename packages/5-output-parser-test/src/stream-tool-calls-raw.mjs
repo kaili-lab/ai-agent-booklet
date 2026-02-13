@@ -43,9 +43,10 @@ try {
 
     for await (const chunk of stream) {
         chunkIndex++;
+        // console.log(chunk);
         // 直接打印每个 chunk 的 tool_calls 信息
         if (chunk.tool_call_chunks && chunk.tool_call_chunks.length > 0) {
-            process.stdout.write(chunk.tool_call_chunks[0].args);
+            process.stdout.write(chunk.tool_call_chunks[0].args || '');
         }
     }
 
