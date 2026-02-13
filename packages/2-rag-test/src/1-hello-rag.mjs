@@ -1,3 +1,27 @@
+/*
+文件说明：1-hello-rag.mjs - RAG 手动实现方式
+
+这个文件展示的是 RAG (Retrieval-Augmented Generation) 的"原始"实现方式，
+开发者需要手动控制每个步骤，让学习者能清楚看到 RAG 的每个环节。
+
+核心流程：
+1. 手动检索文档（第 112 行）：使用 retriever.invoke() 获取相关文档
+2. 手动构建 prompt（第 133-137 行）：自己拼接上下文和问题
+3. 手动调用 LLM（第 141 行）：使用 model.invoke() 生成回答
+
+为什么这样做？
+这种方式让学习者能清楚看到 RAG 的每个环节——检索、上下文组装、生成，
+适合理解 RAG 的底层原理。
+
+适用场景：
+- 学习 RAG 原理
+- 需要完全自定义流程
+- 项目简单（< 3 步流程）
+- 调试复杂问题
+
+对比文件：1-hello-rag-chain.mjs 展示了链式封装方式
+*/
+
 import "dotenv/config";
 import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
 import { Document } from "@langchain/core/documents";
@@ -106,7 +130,9 @@ for (const question of questions) {
   console.log("=".repeat(80));
   console.log(`问题: ${question}`);
   console.log("=".repeat(80));
-  
+
+  // ⭐ 手动方式步骤 1：显式调用 retriever 检索文档
+  // 👉 对比：链式方式（1-hello-rag-chain.mjs）把这一步封装在 retrievalChain.invoke() 内部
   // 使用 retriever 获取文档
   // 将question转换为向量，根据向量匹配，从向量数据库中检索出最相似的文档
   const retrievedDocs = await retriever.invoke(question);
@@ -128,14 +154,19 @@ for (const question of questions) {
     console.log(`内容: ${doc.pageContent}`);
     console.log(`元数据: 章节=${doc.metadata.chapter}, 角色=${doc.metadata.character}, 类型=${doc.metadata.type}, 心情=${doc.metadata.mood}`);
   });
-  
+
+  // ⭐ 手动方式步骤 2：手动拼接文档和 prompt
+  // 这里需要自己控制文档格式化逻辑（map + join）
+  // 👉 对比：链式方式用 createStuffDocumentsChain 自动完成这一步
   // 构建 prompt
   const context = retrievedDocs
     .map((doc, i) => `[片段${i + 1}]\n${doc.pageContent}`)
     .join("\n\n━━━━━\n\n");
-  
+
   const prompt = `你是一个讲友情故事的老师。基于以下故事片段回答问题，用温暖生动的语言。如果故事中没有提到，就说"这个故事里还没有提到这个细节"。故事片段: ${context} 问题: ${question} 老师的回答:`;
-  
+
+  // ⭐ 手动方式步骤 3：显式调用 LLM 生成回答
+  // 👉 对比：链式方式把检索、格式化、生成三步合并为一行 retrievalChain.invoke()
   // 直接使用 model.invoke
   console.log("\n【AI 回答】");
   const response = await model.invoke(prompt);

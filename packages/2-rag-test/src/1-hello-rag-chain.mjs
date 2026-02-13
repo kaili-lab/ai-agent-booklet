@@ -1,3 +1,41 @@
+/*
+文件说明：1-hello-rag-chain.mjs - RAG 链式封装方式
+
+这个文件展示的是 LangChain 的"链式"实现方式，使用框架提供的高级抽象。
+
+核心组件：
+1. ChatPromptTemplate（第 105-108 行）：结构化 prompt 模板
+   - 区分 system 消息和 user 消息，符合 Chat API 规范
+   - 使用变量占位符 {context} 和 {input}，避免手动拼接
+
+2. createStuffDocumentsChain（第 111-114 行）：文档组合链
+   - "stuff" 意思是"把所有文档塞进一个 prompt"
+   - 自动格式化检索到的文档并填充到模板的 {context} 中
+   - 适合文档少（< 5 个）且文档短（每个 < 500 字）的场景
+
+3. createRetrievalChain（第 117-120 行）：检索链
+   - 整合检索器和文档组合链
+   - 一键调用完成：检索 → 格式化 → 生成答案
+
+链式方式的优势：
+- 自动化流程管理：一行代码完成多个步骤
+- 内置错误处理：自动重试、日志记录
+- 标准化输入输出：便于测试和团队协作
+
+链式方式的劣势：
+- 黑盒化：不知道内部细节
+- 灵活性受限：自定义逻辑需要重写链
+- 学习成本：需要理解不同链的适用场景
+
+适用场景：
+- 生产环境
+- 标准化的 RAG 流程
+- 需要快速迭代
+- 团队协作
+
+对比文件：1-hello-rag.mjs 展示了手动实现方式
+*/
+
 import "dotenv/config";
 import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
 import { Document } from "@langchain/core/documents";
@@ -5,6 +43,12 @@ import { MemoryVectorStore } from "@langchain/classic/vectorstores/memory";
 import { createRetrievalChain } from "langchain/chains/retrieval";
 import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
+
+// ⭐ 差异点 1：链式方式引入了三个额外的组件
+// - createRetrievalChain: 封装"检索 + 生成"的完整流程
+// - createStuffDocumentsChain: 封装"把文档塞入 prompt"的逻辑
+// - ChatPromptTemplate: 结构化 prompt 模板
+// 👉 对比：手动方式（1-hello-rag.mjs）不需要这些，直接用 retriever.invoke() 和 model.invoke()
 
 const documents = [
   new Document({
@@ -101,19 +145,25 @@ const vectorStore = await MemoryVectorStore.fromDocuments(
 
 const retriever = vectorStore.asRetriever({ k: 3 });
 
-// 创建自定义 prompt 模板
+// ⭐ 差异点 2：使用 ChatPromptTemplate 结构化 prompt
+// 优势：区分 system 和 user 消息，符合 Chat API 规范
+// 👉 对比：手动方式用字符串拼接 `你是老师。故事片段: ${context}...`
 const prompt = ChatPromptTemplate.fromMessages([
-  ["system", "你是一个讲友情故事的老师。基于以下故事片段回答问题，用温暖生动的语言。如果故事中没有提到，就说"这个故事里还没有提到这个细节"。"],
+  ["system", "你是一个讲友情故事的老师。基于以下故事片段回答问题，用温暖生动的语言。如果故事中没有提到，就说这个故事里还没有提到这个细节。"],
   ["human", "故事片段:\n{context}\n\n问题: {input}\n\n老师的回答:"],
 ]);
 
-// 创建文档组合链
+// ⭐ 差异点 3：创建"文档组合链"
+// 作用：自动把检索到的文档格式化并填充到 prompt 模板的 {context} 中
+// 👉 对比：手动方式需要自己写 .map() 和 .join() 来格式化文档（见 1-hello-rag.mjs 第 133-135 行）
 const combineDocsChain = await createStuffDocumentsChain({
   llm: model,
   prompt,
 });
 
-// 创建检索链
+// ⭐ 差异点 4：创建"检索链"
+// 作用：整合检索器 + 文档组合链，一键完成：检索 → 格式化 → 调用 LLM
+// 👉 对比：手动方式需要分 3 步执行（检索、格式化、调用），见 1-hello-rag.mjs 第 112、133-137、141 行
 const retrievalChain = await createRetrievalChain({
   retriever,
   combineDocsChain,
@@ -127,8 +177,11 @@ for (const question of questions) {
   console.log("=".repeat(80));
   console.log(`问题: ${question}`);
   console.log("=".repeat(80));
-  
-  // 使用检索链获取回答
+
+  // ⭐ 差异点 5：一行代码完成整个 RAG 流程
+  // 链会自动：1) 检索文档  2) 格式化上下文  3) 调用 LLM  4) 返回结构化结果
+  // 返回值包含 result.answer（答案）和 result.context（检索到的文档）
+  // 👉 对比：手动方式需要手动执行每一步，见 1-hello-rag.mjs 第 112-142 行
   const result = await retrievalChain.invoke({ input: question });
   
   // 使用 similaritySearchWithScore 获取相似度评分
