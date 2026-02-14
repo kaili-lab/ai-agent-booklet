@@ -25,8 +25,12 @@
 import "dotenv/config";
 import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
 import { Document } from "@langchain/core/documents";
+// 外部向量数据库的wrapper
 import { MemoryVectorStore } from "@langchain/classic/vectorstores/memory";
-
+/*
+所有数据源都会转化为 Document 对象进行存储，无论是PDF、CSV网页
+Document 是中间格式，便于统一处理和向量化
+*/
 const documents = [
   new Document({
     pageContent: `光光是一个活泼开朗的小男孩，他有一双明亮的大眼睛，总是带着灿烂的笑容。光光最喜欢的事情就是和朋友们一起玩耍，他特别擅长踢足球，每次在球场上奔跑时，就像一道阳光一样充满活力。`,
@@ -103,6 +107,7 @@ const model = new ChatOpenAI({
 });
 
 // 这是向量模型对象，并非是LLM模型，因为它只会输出向量数据；
+// 将文本转换为向量的工具类
 const embeddings = new OpenAIEmbeddings({
   apiKey: process.env.OPENAI_API_KEY,
   model: process.env.EMBEDDINGS_MODEL_NAME,
@@ -135,6 +140,7 @@ for (const question of questions) {
   // 👉 对比：链式方式（1-hello-rag-chain.mjs）把这一步封装在 retrievalChain.invoke() 内部
   // 使用 retriever 获取文档
   // 将question转换为向量，根据向量匹配，从向量数据库中检索出最相似的文档
+  // VexctorStore 包装成 Retriever 接口，，可以在LangChain中链式调用
   const retrievedDocs = await retriever.invoke(question);
   
   // 使用 similaritySearchWithScore 获取相似度评分
@@ -173,3 +179,13 @@ for (const question of questions) {
   console.log(response.content);
   console.log("\n");
 }
+/* 
+相似度评分的说明
+1. 可以用来过滤查询的结果，但是否过滤取决于业务逻辑需要
+2. 相似度的常用场景：
+   帮助优化分块策略，如果普遍相似度偏低，可以调整分块大小
+   帮助优化检索参数，如果相似度过低可以增加查询候选数量参数k
+   帮助优化模型选择，
+   帮助优化提示词
+
+*/
