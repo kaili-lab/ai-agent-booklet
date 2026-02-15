@@ -69,6 +69,7 @@ const readmeDoc = new Document({
     pageContent: readmeText
 });
 
+// markdown分割器
 const markdownTextSplitter = new MarkdownTextSplitter({
     chunkSize: 400,
     chunkOverlap: 80

@@ -18,6 +18,11 @@ const logDocument = new Document({
 
 const enc = getEncoding("cl100k_base");
 
+/*
+按优先级列表递归尝试多种分隔符。
+
+核心逻辑： 尝试用段落分隔 → 块仍太大 → 尝试用句子分隔 → 仍太大 → 尝试用词分隔 → ... → 最后才硬切
+*/
 const logTextSplitter = new RecursiveCharacterTextSplitter({
     chunkSize: 150,
     chunkOverlap: 20,

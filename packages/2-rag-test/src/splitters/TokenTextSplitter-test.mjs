@@ -13,7 +13,12 @@ const logDocument = new Document({
 [2024-01-15 10:00:25] INFO: Retrying operation
 [2024-01-15 10:00:30] SUCCESS: Operation completed`
 });
+/*
+RecursiveCharacterTextSplitter 按字符数估算块大小，但 LLM 的上下文限制是Token 数，对于需要精准控制 token 数量的场景就不大合适了
 
+TokenTextSplitter 直接按 Token 计数，保证 chunkSize: 50 就是 50 个 Token，与模型输入限制精确对应 
+代价是可能牺牲部分语义完整性
+*/
 const logTextSplitter = new TokenTextSplitter({
     chunkSize: 50,        // 每个块最多 50 个 Token
     chunkOverlap: 10,    // 块之间重叠 10 个 Token

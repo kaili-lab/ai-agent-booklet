@@ -3,5 +3,5 @@ node_modules/
 *-lock.json
 *-lock.*
 *.lock
-*.env*
+.env
 plan_workspace

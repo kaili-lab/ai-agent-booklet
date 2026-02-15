@@ -13,6 +13,7 @@ const latexDoc = new Document({
     pageContent: latexText
 });
 
+// 数学公式分割器
 const markdownTextSplitter = new LatexTextSplitter({
     chunkSize: 200,
     chunkOverlap: 40

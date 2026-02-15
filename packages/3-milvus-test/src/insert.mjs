@@ -26,6 +26,7 @@ async function getEmbedding(text) {
 async function main() {
   try {
     console.log('Connecting to Milvus...');
+    // 连接数据库
     await client.connectPromise;
     console.log('✓ Connected\n');
 

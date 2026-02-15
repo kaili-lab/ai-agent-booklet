@@ -153,6 +153,9 @@ for (const question of questions) {
     const scoredResult = scoredResults.find(([scoredDoc]) => 
       scoredDoc.pageContent === doc.pageContent
     );
+    console.log('====================================');
+    console.log("scoredResult", scoredResult);
+    console.log('====================================');
     const score = scoredResult ? scoredResult[1] : null;
     const similarity = score !== null ? (1 - score).toFixed(4) : "N/A";
     
