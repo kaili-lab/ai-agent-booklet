@@ -1,0 +1,102 @@
+# Milvus + Attu 完整 Docker Compose 配置
+# 用途：本地 RAG 开发环境
+# 包含服务：Milvus (etcd + minio + standalone) + Attu 管理界面
+
+version: '3.5'
+
+services:
+  # ========== 元数据存储 ==========
+  etcd:
+    container_name: milvus-etcd
+    image: quay.io/coreos/etcd:v3.5.5
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/etcd:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - milvus
+
+  # ========== 对象存储 ==========
+  minio:
+    container_name: milvus-minio
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    ports:
+      - "9001:9001"
+      - "9000:9000"
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/minio:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - milvus
+
+  # ========== Milvus 核心服务 ==========
+  standalone:
+    container_name: milvus-standalone
+    image: milvusdb/milvus:v2.6.8
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/milvus:/var/lib/milvus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
+    ports:
+      - "19530:19530"  # Milvus gRPC 端口（应用连接）
+      - "9091:9091"    # Milvus WebUI 端口
+    depends_on:
+      - "etcd"
+      - "minio"
+    networks:
+      - milvus
+
+  # ========== Attu 管理界面 ==========
+  attu:
+    container_name: milvus-attu
+    image: zilliz/attu:v2.6
+    environment:
+      # Attu 连接 Milvus 的地址（使用容器名）
+      MILVUS_URL: milvus-standalone:19530
+    ports:
+      - "8000:3000"  # Attu Web 界面端口
+    depends_on:
+      - "standalone"
+    networks:
+      - milvus
+
+networks:
+  milvus:
+    name: milvus
+
+# 说明：
+# 1. 启动所有服务：docker compose up -d
+# 2. 停止服务：docker compose stop
+# 3. 完全删除（包括数据）：docker compose down -v
+# 4. 访问地址：
+#    - Milvus API: localhost:19530
+#    - Milvus WebUI: http://127.0.0.1:9091/webui/
+#    - Attu 管理界面: http://localhost:8000
+#    - MinIO 控制台: http://localhost:9001 (用户名/密码: minioadmin/minioadmin)

@@ -89,33 +89,33 @@ async function answerDiaryQuestion(question, k = 2) {
       console.log(`内容: ${diary.content}`);
     });
 
-    // 3. 构建上下文
+    // 3. 利用查询的数据，构建context
     const context = retrievedDiaries
       .map((diary, i) => {
         return `[日记 ${i + 1}]
-日期: ${diary.date}
-心情: ${diary.mood}
-标签: ${diary.tags?.join(', ')}
-内容: ${diary.content}`;
-      })
-      .join('\n\n━━━━━\n\n');
+          日期: ${diary.date}
+          心情: ${diary.mood}
+          标签: ${diary.tags?.join(', ')}
+          内容: ${diary.content}`;
+        })
+        .join('\n\n━━━━━\n\n');
 
     // 4. 构建 prompt
     const prompt = `你是一个温暖贴心的 AI 日记助手。基于用户的日记内容回答问题，用亲切自然的语言。
 
-请根据以下日记内容回答问题：
-${context}
+    请根据以下日记内容回答问题：
+    ${context}
 
-用户问题: ${question}
+    用户问题: ${question}
 
-回答要求：
-1. 如果日记中有相关信息，请结合日记内容给出详细、温暖的回答
-2. 可以总结多篇日记的内容，找出共同点或趋势
-3. 如果日记中没有相关信息，请温和地告知用户
-4. 用第一人称"你"来称呼日记的作者
-5. 回答要有同理心，让用户感到被理解和关心
+    回答要求：
+    1. 如果日记中有相关信息，请结合日记内容给出详细、温暖的回答
+    2. 可以总结多篇日记的内容，找出共同点或趋势
+    3. 如果日记中没有相关信息，请温和地告知用户
+    4. 用第一人称"你"来称呼日记的作者
+    5. 回答要有同理心，让用户感到被理解和关心
 
-AI 助手的回答:`;
+    AI 助手的回答:`;
 
     // 5. 调用 LLM 生成回答
     console.log('\n【AI 回答】');

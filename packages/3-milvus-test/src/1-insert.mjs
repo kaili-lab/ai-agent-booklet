@@ -32,6 +32,7 @@ async function main() {
 
     // 创建集合
     console.log('Creating collection...');
+    // 类似于关系型数据库的 CREATE TABLE
     await client.createCollection({
       collection_name: COLLECTION_NAME,
       fields: [
@@ -58,6 +59,8 @@ async function main() {
 
     // 加载集合
     console.log('\nLoading collection...');
+    // loadCollection 是查询向量的必备操作，将集合从磁盘加载到内存中，让它处于"可搜索"状态
+    // 如果仅仅是insert向量，这个不需要；
     await client.loadCollection({ collection_name: COLLECTION_NAME });
     console.log('Collection loaded');
 
@@ -102,6 +105,7 @@ async function main() {
     ];
 
     console.log('Generating embeddings...');
+    // 为日记生成向量数据
     const diaryData = await Promise.all(
       diaryContents.map(async (diary) => ({
         ...diary,
@@ -109,6 +113,7 @@ async function main() {
       }))
     );
 
+    // 插入向量
     const insertResult = await client.insert({
       collection_name: COLLECTION_NAME,
       data: diaryData
