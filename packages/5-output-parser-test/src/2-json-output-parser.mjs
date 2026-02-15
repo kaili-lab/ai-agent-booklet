@@ -12,11 +12,14 @@ const model = new ChatOpenAI({
     },
 });
 
+// 1-normal.mjs中返回的json，是自带markdown格式的，无法直接解析，
+// 使用 JsonOutputParser 可以处理这个返回数据；
 const parser = new JsonOutputParser();
 
 const question = `请介绍一下爱因斯坦的信息。请以 JSON 格式返回，包含以下字段：name（姓名）、birth_year（出生年份）、nationality（国籍）、major_achievements（主要成就，数组）、famous_theory（著名理论）。
 
 ${parser.getFormatInstructions()}`;
+// parser.getFormatInstructions():一段注入到 prompt 中的格式化指令，告诉 LLM "你应该按什么格式返回 JSON"，隐式地约束了 LLM 的输出行为
 
 console.log('question:',question)
 try {

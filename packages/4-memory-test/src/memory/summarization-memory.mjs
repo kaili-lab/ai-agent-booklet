@@ -12,6 +12,7 @@ const model = new ChatOpenAI({
   },
 });
 
+// 消息管理策略2： 总结
 // ========== 总结策略演示 ==========
 async function summarizationMemoryDemo() {
   const history = new InMemoryChatMessageHistory();

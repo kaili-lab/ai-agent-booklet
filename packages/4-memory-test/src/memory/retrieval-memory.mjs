@@ -41,7 +41,8 @@ async function getEmbedding(text) {
 }
 
 /**
- * 从 Milvus 中检索相关的历史对话
+  消息管理策略3：检索向量数据库
+  从 Milvus 中检索相关的历史对话
  */
 async function retrieveRelevantConversations(query, k = 2) {
   try {

@@ -12,6 +12,7 @@ const model = new ChatOpenAI({
     },
 });
 
+// StructuredOutputParser 可以看作是高级版的 JSON parser
 // 定义输出结构
 const parser = StructuredOutputParser.fromNamesAndDescriptions({
     name: "姓名",

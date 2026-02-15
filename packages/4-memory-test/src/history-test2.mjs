@@ -13,6 +13,7 @@ const model = new ChatOpenAI({
   },
 });
 
+// 消息存到文件里：FileSystemChatMessageHistory
 async function fileHistoryDemo() {
   // 指定存储文件的路径
   const filePath = path.join(process.cwd(), "chat_history.json");

@@ -12,6 +12,7 @@ const model = new ChatOpenAI({
   },
 });
 
+// 消息存到内存里：InMemoryChatMessageHistory
 async function inMemoryDemo() {
   const history = new InMemoryChatMessageHistory();
 

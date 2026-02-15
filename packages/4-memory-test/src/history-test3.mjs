@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { ChatOpenAI } from '@langchain/openai';
 import { FileSystemChatMessageHistory } from "@langchain/community/stores/message/file_system";
-import { HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
+import { HumanMessage,  SystemMessage } from "@langchain/core/messages";
 import path from "node:path";
 
 const model = new ChatOpenAI({ 
@@ -13,6 +13,7 @@ const model = new ChatOpenAI({
   },
 });
 
+// 演示在通过文件恢复会话
 async function fileHistoryDemo() {
   // 指定存储文件的路径
   const filePath = path.join(process.cwd(), "chat_history.json");

@@ -23,6 +23,7 @@ function countTokens(messages, encoder) {
   return total;
 }
 
+// 根据 token 来触发总结
 // ========== 总结策略演示（基于 token 计数） ==========
 async function summarizationMemoryDemo() {
   const history = new InMemoryChatMessageHistory();

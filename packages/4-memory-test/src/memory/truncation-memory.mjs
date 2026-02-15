@@ -2,6 +2,7 @@ import { InMemoryChatMessageHistory } from "@langchain/core/chat_history";
 import { HumanMessage, AIMessage, trimMessages } from "@langchain/core/messages";
 import { getEncoding } from "js-tiktoken";
 
+// 消息管理策略1： 截断
 // ========== 1. 按消息数量截断 ==========
 async function messageCountTruncation() {
   const history = new InMemoryChatMessageHistory();

@@ -18,6 +18,7 @@ const client = new MilvusClient({
   address: 'localhost:19530'
 });
 
+// 为了策略3（检索向量数据库准备数据）
 /**
  * 获取文本的向量嵌入
  */
